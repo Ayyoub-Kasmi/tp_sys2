@@ -53,6 +53,13 @@ struct {
   unsigned char partie2[468];
 } boot_sector;
 
+struct {
+    unsigned char nom[8];
+    // + 12
+    unsigned char first_cluster_number[2];
+    unsigned char size_in_bytes[4];
+} repository_entry;
+
 void list_os() {
   // Supported options: Linux and MacOS
   printf("1. Linux\n");
@@ -231,9 +238,9 @@ void afficher_info_Partition(char *nom_disque) {
     // printf( "\n| sdb%d      |   x'%8d'  |   x'%8d'  |    %8d    |     %8.3f
     // |", i, adrDebutPartition, adrFinPartition, taille, taille_KO);
     printf(
-        "\n| %s%d      |   x'%9d'  |    %9.3f    |     %c     |     %9d     |",
+        "\n| %s%d      |   x'%9d'  |    %9.3f    |     %d     |     %9d     |",
         nom_disque, i, taille_sectors, taille_KO,
-        boot_sector.firstClusterNumber, clusterLBAAddress);
+        *(int *)&boot_sector.firstClusterNumber, clusterLBAAddress);
     printf("\n|-----------|----------------|----------------|---------------|");
   }
 }
