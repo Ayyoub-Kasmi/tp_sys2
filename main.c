@@ -48,7 +48,9 @@ struct {
     unsigned char NbSecFat[2];
     unsigned char partie3[12];
   } Bios;
-  unsigned char partie2[476];
+  unsigned char padding [8];
+  unsigned char firstClusterNumber;
+  unsigned char partie2[468];
 } boot_sector;
 
 void list_os() {
@@ -127,7 +129,7 @@ void print_disk_information(char *nom_disque) {
 }
 
 // Calculer l'adresse LBA de cluster racine
-void cluster_address(int adr, FILE *disque) {
+int cluster_address(int adr, FILE *disque) {
 
   printf("\n\n\t\t******************* l'adresse LBA de cluster racine ******************* \n");
 
@@ -160,8 +162,8 @@ void cluster_address(int adr, FILE *disque) {
   int NbrFat = *(int *)&(boot_sector.Bios.NbFat);
   int NbSecFat = *(int *)&(boot_sector.Bios.NbSecFat);
 
-  int AdrCluster = adr + NbrSecteurRes + (NbrFat * NbSecFat);
-  printf("\n Adresse LBA premier cluster : %d \n ", AdrCluster);
+//  printf("\n Adresse LBA premier cluster : %d \n ", AdrCluster);
+    return adr + NbrSecteurRes + (NbrFat * NbSecFat);
 }
 
 // Procédure d'affichage des informations de partitions
@@ -199,33 +201,34 @@ void afficher_info_Partition(char *nom_disque) {
 
   printf("\n|-----------|----------------|----------------|----------------|---"
          "------------|");
-  printf("\n| Partition |    LBA_DEBUT   |  LBA_FIN       | Nombre secteur |  "
-         "Taille en GO|");
+  printf("\n| Partition |    Taille(secteur)   |  Taille KO       | Premier cluster |  "
+         "LBA premier cluster|");
   printf("\n|-----------|----------------|----------------|----------------|---"
          "------------|");
 
-  int x = 1024 * 1024 * 1024;
-  for (int i = 0; i < 4; i++) {
+    int x = 1024;
+    for (int i = 0; i < 4; i++) {
 
-    int adrD = *(int *)&(sector.EntreeTable[i].P_adrlba);
-    // printf("\n première adresse LBA de la partition %d \n",adrD);
+        int adrDebutPartition = *(int *) &(sector.EntreeTable[i].P_adrlba);
+        // printf("\n première adresse LBA de la partition %d \n",adrDebutPartition);
 
-    int adrF = *(int *)&(sector.EntreeTable[i].D_adrlba);
-    // printf("\n dernière adresse LBA de la partition  %d \n",adrF);
+        int adrFinPartition = *(int *) &(sector.EntreeTable[i].D_adrlba);
+        // printf("\n dernière adresse LBA de la partition  %d \n",adrFinPartition);
 
-    int taille_sectors = adrF - adrD;
-    // printf("\n La taille de la partition en nombre de secteur  %d
-    // \n",taille);
-    double t, y;
-    y = (double)taille_sectors * 512;
-    t = y / x;
+        int taille_sectors = adrFinPartition - adrDebutPartition;
+        // printf("\n La taille de la partition en nombre de secteur  %d
+        // \n",taille);
+        double taille_KO, y;
+        y = (double) taille_sectors * 512;
+        taille_KO = y / x;
 
-    // printf( "\n| sdb%d      |   x'%8d'  |   x'%8d'  |    %8d    |     %8.3f     |", i, adrD, adrF, taille, t);
-    printf("\n| %s%d      |   x'%8d'  |    %8d    |     %8.3f     |",nom_disque, i, adrD, taille_sectors, t);
-    printf("\n|-----------|----------------|----------------|---------------|");
-  }
+        int clusterLBAAddress = cluster_address(adrDebutPartition, disque);
 
-  cluster_address(*(int *)&(sector.EntreeTable[1].P_adrlba), disque);
+        // printf( "\n| sdb%d      |   x'%8d'  |   x'%8d'  |    %8d    |     %8.3f     |", i, adrDebutPartition, adrFinPartition, taille, taille_KO);
+        printf("\n| %s%d      |   x'%9d'  |    %9.3f    |     %9d     |     %9d     |", nom_disque, i, taille_sectors, taille_KO, boot_sector.firstClusterNumber, clusterLBAAddress);
+        printf("\n|-----------|----------------|----------------|---------------|");
+    }
+
 }
 
 int main() {
